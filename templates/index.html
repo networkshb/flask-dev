@@ -2,11 +2,9 @@
 {% import "bootstrap/wtf.html" as wtf %}
 {% block title %}Tinker's index{% endblock %}
 
-{% block content %}
-<div class="container">
-    <div class="page-header">
-        <h2>{% if name %}{{ name }}{% else %}Stranger ( "･-･)ﾉ――◎{% endif %}.</h2>
-    </div>
+{% block page_content %}
+<div class="page-header">
+    <h2>{% if name %}{{ name }}{% else %}Stranger ( "･-･)ﾉ――◎{% endif %}.</h2>
 </div>
 {{ wtf.quick_form(form) }}
 {% endblock %}
