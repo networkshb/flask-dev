@@ -1,0 +1,14 @@
+alembic
+blinker
+click
+dominate
+Flask
+Flask-Bootstrap
+Flask-Mail
+Flask-Migrate
+Flask-Moment
+Flask-SQLAlchemy
+Flask-WTF
+Jinja2
+SQLAlchemy
+
