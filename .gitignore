@@ -37,3 +37,6 @@ nosetests.xml
 
 # SQLite databases
 *.sqlite
+
+# project config
+.config.yaml
