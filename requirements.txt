@@ -9,6 +9,6 @@ Flask-Migrate
 Flask-Moment
 Flask-SQLAlchemy
 Flask-WTF
+Flask-login
 Jinja2
 SQLAlchemy
-
