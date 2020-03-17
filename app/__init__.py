@@ -6,11 +6,14 @@ from flask_sqlalchemy import SQLAlchemy
 from config import config
 from flask_login import LoginManager
 
+print(config)
+
 bootstrap = Bootstrap()
 mail = Mail()
 moment = Moment()
 db = SQLAlchemy()
 login_manager = LoginManager()
+# anonymous attempt access security page, login_view function will redirect to Login.html
 login_manager.login_view = 'auth.login'
 
 def create_app(config_name):

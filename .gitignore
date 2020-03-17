@@ -43,3 +43,5 @@ nosetests.xml
 
 # venv
 flask-venv
+# env
+.sec

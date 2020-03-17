@@ -1,10 +1,18 @@
 from flask import render_template, redirect, request, url_for, flash
 from . import auth
-from .forms import LoginForm, RegistrationForm
+from .forms import LoginForm, RegistrationForm, ChangePasswordForm
 from flask_login import login_required, logout_user, login_user, current_user
 from ..email import send_email
 from ..models import User
 from .. import db
+
+@auth.before_app_request
+def before_request():
+    if current_user.is_authenticated \
+            and not current_user.confirmed \
+            and request.blueprint != 'auth' \
+            and request.endpoint != 'static':
+        return redirect(url_for('auth.unconfirmed'))
 
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
@@ -43,6 +51,22 @@ def register():
         return redirect(url_for('auth.login'))
     return render_template('auth/register.html', form=form)
 
+@auth.route('/change-password', methods=['GET','POST'])
+@login_required
+def change_password():
+    form = ChangePasswordForm()
+    if form.validate_on_submit():
+        user = current_user
+        if user.verify_password(form.old_password.data):
+            user.password = form.password.data
+            db.session.add(user)
+            db.session.commit()
+            flash('Your password has been updated')
+            return redirect(url_for('auth.login'))
+        else:
+            flash('Passwold not correct')
+    return render_template('auth/change_password.html', form=form)
+
 @auth.route('/confirm/<token>')
 @login_required
 def confirm(token):
@@ -55,13 +79,6 @@ def confirm(token):
         flash('The confirmation link is invalid or has expired.')
     return redirect(url_for('main.index'))
 
-@auth.before_app_request
-def before_request():
-    if current_user.is_authenticated \
-            and not current_user.confirmed \
-            and request.blueprint != 'auth' \
-            and request.endpoint != 'static':
-        return redirect(url_for('auth.unconfirmed'))
 
 @auth.route('/unconfirmed')
 def unconfirmed():

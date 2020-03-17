@@ -4,11 +4,11 @@ from ..models import User
 from ..email import send_email
 from . import main
 from .forms import NameForm
+from flask_login import login_required
 
 
 @main.route('/', methods=['GET', 'POST'])
 def index():
-    name = None
     form = NameForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.name.data).first()
@@ -27,3 +27,7 @@ def index():
         return redirect(url_for('main.index'))
     return render_template('index.html', form=form, name=session.get('name'),
                             known=session.get('known', False))
+
+@main.route('/sec')
+def test_sec():
+    return "ok", 200
