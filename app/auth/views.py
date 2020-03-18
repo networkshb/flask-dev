@@ -1,6 +1,6 @@
 from flask import render_template, redirect, request, url_for, flash
 from . import auth
-from .forms import LoginForm, RegistrationForm, ChangePasswordForm
+from .forms import LoginForm, RegistrationForm, ChangePasswordForm, PasswordResetRequestForm, PasswordResetForm
 from flask_login import login_required, logout_user, login_user, current_user
 from ..email import send_email
 from ..models import User
@@ -66,6 +66,36 @@ def change_password():
         else:
             flash('Passwold not correct')
     return render_template('auth/change_password.html', form=form)
+
+
+@auth.route('/reset', methods=['GET','POST'])
+def password_reset_request():
+    form = PasswordResetRequestForm()
+    if form.validate_on_submit():
+        if User.query.filter_by(email=form.email.data).first():
+            user = User.query.filter_by(email=form.email.data.lower()).first()
+            print(user)
+            token = user.generate_reset_password_token()
+            send_email(user.email, '修改密码', \
+                    'auth/email/reset_password', user=user, token=token)
+            flash('A reset password email has been sent to you by email.')
+            # send password 
+            # flash message
+        else:
+            flash('not found')
+    return render_template('auth/reset_password.html', form=form)
+
+@auth.route('/reset/<token>', methods=['GET','POST'])
+def password_reset(token):
+    form = PasswordResetForm()
+    if form.validate_on_submit():
+        if User.password_reset(token, form.password.data):
+            flash('Your password update')
+            redirect(url_for('auth.login'))
+        else:
+            flash('error')
+    return render_template('auth/reset_password.html',form=form)
+
 
 @auth.route('/confirm/<token>')
 @login_required
