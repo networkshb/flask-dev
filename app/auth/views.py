@@ -1,6 +1,6 @@
 from flask import render_template, redirect, request, url_for, flash
 from . import auth
-from .forms import LoginForm, RegistrationForm, ChangePasswordForm, PasswordResetRequestForm, PasswordResetForm
+from .forms import LoginForm, RegistrationForm, ChangePasswordForm, PasswordResetRequestForm, PasswordResetForm, EmailChangeForm
 from flask_login import login_required, logout_user, login_user, current_user
 from ..email import send_email
 from ..models import User
@@ -74,13 +74,10 @@ def password_reset_request():
     if form.validate_on_submit():
         if User.query.filter_by(email=form.email.data).first():
             user = User.query.filter_by(email=form.email.data.lower()).first()
-            print(user)
             token = user.generate_reset_password_token()
             send_email(user.email, '修改密码', \
                     'auth/email/reset_password', user=user, token=token)
             flash('A reset password email has been sent to you by email.')
-            # send password 
-            # flash message
         else:
             flash('not found')
     return render_template('auth/reset_password.html', form=form)
@@ -90,11 +87,33 @@ def password_reset(token):
     form = PasswordResetForm()
     if form.validate_on_submit():
         if User.password_reset(token, form.password.data):
+            db.session.commit()
             flash('Your password update')
             redirect(url_for('auth.login'))
         else:
             flash('error')
     return render_template('auth/reset_password.html',form=form)
+
+@auth.route('/change-email',  methods=['GET','POST'])
+@login_required
+def change_email():
+    form = EmailChangeForm()
+    if form.validate_on_submit():
+        new_email = form.data.get('email')
+        token = current_user.generate_email_change_token(new_email)
+        send_email(new_email, '重置邮箱地址', 'auth/email/change_email', user=current_user, token = token)
+        flash('a change-email email has sent to you by email')
+        redirect(url_for('main.index'))
+    return render_template('auth/change_email.html', form=form)
+
+
+@auth.route('/change-email/<token>', methods=['GET'])
+def change_email_confirm(token):
+    if current_user.change_email(token):
+        db.session.commit()
+        redirect('auth/login.html')
+    return render_template('auth/unconfirmed.html')
+
 
 
 @auth.route('/confirm/<token>')
@@ -124,3 +143,4 @@ def resend_confirmation():
                'auth/email/confirm', user=current_user, token=token)
     flash('A new confirmation email has been sent to you by email.')
     return redirect(url_for('main.index'))
+
