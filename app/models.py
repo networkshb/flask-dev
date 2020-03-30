@@ -5,6 +5,8 @@ from flask_login import UserMixin, AnonymousUserMixin
 from flask import current_app
 from . import login_manager
 from datetime import datetime
+from markdown import markdown
+import bleach
 import hashlib
 
 class Permission:
@@ -33,10 +35,6 @@ class Role(db.Model):
     def add_permission(self, perm):
         if not self.has_permission(perm):
             self.permissions += perm
-    
-    def remove_permission(self, perm):
-        if self.has_permission(perm):
-            self.permissions -= perm
 
     def reset_permissions(self):
         self.permissions = 0
@@ -66,6 +64,24 @@ class Role(db.Model):
             db.session.add(role)
         db.session.commit()
 
+class Post(db.Model):
+    __tablename__ = 'posts'
+    id = db.Column(db.Integer, primary_key=True)
+    body = db.Column(db.Text)
+    body_html = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    @staticmethod
+    def on_changed_body(target, value, oldvalue, initiator):
+        allowed_tags = ['a', 'abbr', 'acronym', 'b', 'blockquote', 'code',
+                        'em', 'i', 'li', 'ol', 'pre', 'strong', 'ul',
+                        'h1', 'h2', 'h3', 'p']
+        target.body_html = bleach.linkify(bleach.clean(
+            markdown(value, output_format='html'),
+            tags=allowed_tags, strip=True))
+
+db.event.listen(Post.body, 'set', Post.on_changed_body)
+
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
@@ -80,6 +96,9 @@ class User(UserMixin, db.Model):
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
     avatar_hash = db.Column(db.String(32))
+    posts = db.relationship('Post', backref='author', lazy='dynamic')
+
+
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
         if self.role is None:
@@ -142,7 +161,7 @@ class User(UserMixin, db.Model):
         if user is None or user.id != self.id:
             return False
         new_email = data.get('new_email')
-        
+
         if new_email == None:
             return False
         if self.query.filter_by(email=new_email).first() is not None:
@@ -194,5 +213,3 @@ login_manager.anonymous_user = AnonymousUser
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
-
-

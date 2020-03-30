@@ -1,4 +1,5 @@
 wheel
+faker
 alembic
 blinker
 click
@@ -13,3 +14,6 @@ Flask-WTF
 Flask-login
 Jinja2
 SQLAlchemy
+flask-pagedown
+markdown
+bleach

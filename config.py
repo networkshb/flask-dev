@@ -15,7 +15,7 @@ class Config:
     MAIL_ADMIN = os.environ.get('MAIL_ADMIN')
     MAIL_DEBUG = 1
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-
+    FLASKY_POSTS_PER_PAGE = 10
     @staticmethod
     def init_app(app):
         pass

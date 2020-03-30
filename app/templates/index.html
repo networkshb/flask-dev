@@ -1,13 +1,21 @@
 {% extends "base.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
+{% import "_macros.html" as macros %}
 {% block title %}Tinker's index{% endblock %}
 
 {% block page_content %}
 <div class="page-header">
-    {% if current_user.is_authenticated %}
-        hello, {{ current_user.username }}
-    {% else %}
-        Stranger
-    {% endif %}!
+  {% if current_user.can(Permission.WRITE) %}
+  {{ wtf.quick_form(form) }}
+  {% endif %}
 </div>
+{% include '_posts.html' %}
+<div class="pagination">
+  {{ macros.pagination_widget(pagination, '.index') }}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{{ pagedown.include_pagedown() }}
 {% endblock %}
