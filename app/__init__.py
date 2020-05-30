@@ -6,7 +6,8 @@ from flask_sqlalchemy import SQLAlchemy
 from config import config
 from flask_login import LoginManager
 from flask_pagedown import PageDown
-print(config)
+from flask_debugtoolbar import DebugToolbarExtension
+
 
 bootstrap = Bootstrap()
 mail = Mail()
@@ -16,7 +17,7 @@ login_manager = LoginManager()
 # anonymous attempt access security page, login_view function will redirect to Login.html
 login_manager.login_view = 'auth.login'
 pagedown = PageDown()
-
+debug_toolbar_ext = DebugToolbarExtension()
 
 def create_app(config_name):
     app = Flask(__name__)
@@ -29,10 +30,15 @@ def create_app(config_name):
     db.init_app(app)
     login_manager.init_app(app)
     pagedown.init_app(app)
+#    toolbar = DebugToolbarExtension(app)
 
     from .main import main as main_blueprint
     app.register_blueprint(main_blueprint)
 
     from .auth import auth as auth_blueprint
     app.register_blueprint(auth_blueprint, url_prefix='/auth')
+
+    from .api import api as api_blueprint
+    app.register_blueprint(api_blueprint, url_prefix='/api/v1')
+
     return app

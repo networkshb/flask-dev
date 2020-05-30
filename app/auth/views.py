@@ -25,6 +25,7 @@ def login():
             next = request.args.get('next')
             if next is None or not next.startswith('/'):
                 next = url_for('main.index')
+            print(next)
             return redirect(next)
         flash('Invalid email or password.')
     return render_template('auth/login.html', form=form)
@@ -40,7 +41,7 @@ def logout():
 def register():
     form = RegistrationForm()
     if form.validate_on_submit():
-        user = User(email = form.email.data, 
+        user = User(email = form.email.data,
                 username = form.username.data,
                 password = form.password.data)
         db.session.add(user)

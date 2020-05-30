@@ -11,19 +11,19 @@ from ..decorators import admin_required, permission_required
 def index():
     form = PostForm()
     if current_user.can(Permission.WRITE) and form.validate_on_submit():
-        print(current_user._get_current_object)
         post = Post(body = form.body.data, author = current_user._get_current_object())
-        print(post.body, post.author)
-        print(post.author_id)
         db.session.add(post)
         db.session.commit()
         return redirect(url_for('main.index'))
-    posts = Post.query.order_by(Post.timestamp.desc()).all()
     page = request.args.get('page', 1, type=int)
+    print(page)
     pagination = Post.query.order_by(Post.timestamp.desc()).paginate(
                  page, per_page=current_app.config['FLASKY_POSTS_PER_PAGE'],
                  error_out=False)
+
     posts = pagination.items
+    print(pagination,  '---'*15, posts)
+    current_app.logger.info('processing request for index...')
     return render_template('index.html', form = form, posts = posts, 
                             pagination = pagination)
 
@@ -50,6 +50,14 @@ def edit(id):
     form.body.data = post.body
     return render_template('edit_post.html', form=form)
 
+@main.route('/delete-post/<int:id>')
+@login_required
+def delete_post(id):
+    post = Post.query.get(id)
+    db.session.delete(post)
+    db.session.commit()
+    flash('post deleted')
+    return redirect(url_for('main.index'))
 
 @main.route('/user/<username>')
 def user(username):
@@ -64,8 +72,6 @@ def user(username):
 def edit_profile():
     form = EditProfileForm()
     if form.validate_on_submit():
-        print(form)
-        print(current_user)
         current_user.name = form.name.data
         current_user.location= form.location.data
         current_user.about_me = form.about_me.data
@@ -74,7 +80,6 @@ def edit_profile():
         flash('update success.')
         return redirect(url_for('main.user', username = current_user.username))
     form.name.data = current_user.name
-    print(current_user.name)
     form.location.data = current_user.location
     form.about_me.data = current_user.about_me
     return render_template('edit-profile.html', form = form)
@@ -109,7 +114,74 @@ def edit_profile_admin(id):
     form.about_me.data = user.about_me
     return render_template('edit-profile.html', form=form, user=user)
 
-@main.route('/admin')
+
+@main.route('/follow/<username>')
+@login_required
+@permission_required(Permission.FOLLOW)
+def follow(username):
+    ruser = User.query.filter_by(username = username).first()
+    if ruser is None:
+        flash('Invalid user.')
+        return redirect(url_for('.index'))
+    if current_user.is_following(ruser):
+        flash('You are already following this user.')
+        return redirect(url_for('.user', username=username))
+    luser = current_user._get_current_object()
+    luser.follow(ruser)
+    db.session.commit()
+    flash('You are now following %s.' % username)
+    return redirect(url_for('.user', username=username))
+
+@main.route('/unfollow/<username>')
+@login_required
+@permission_required(Permission.FOLLOW)
+def unfollow(username):
+    ruser = User.query.filter_by(username = username).first()
+    if ruser is None:
+        flash('Invalid users.')
+    if not current_user.is_following(ruser):
+        flask('You are not following this user.')
+    luser = current_user._get_current_object()
+    luser.unfollow(ruser)
+    db.session.commit()
+    flash('You are now unfollowing %s.' % username)
+    return redirect(url_for('.user', username=username))
+
+@main.route('/followers/<username>')
+@login_required
+@permission_required(Permission.FOLLOW)
+def followers(username):
+    user = User.query.filter_by(username = username).first()
+    if user is None:
+        flash('Invalid User')
+        return redirect(url_for('.index'))
+    page = request.args.get('page', 1, type=int)
+    pagination = user.followers.paginate(page, per_page=current_app.config['FLASKY_FOLLOWERS_PER_PAGE'],
+                error_out=False)
+    follows = [{'user': item.follower, 'timestamp': item.timestamp}
+            for item in pagination.items]
+    return render_template('followers.html', user=user, title="Followers of",
+            endpoint='.followers', pagination=pagination,
+            follows=follows)
+
+@main.route('/followed_by/<username>')
+@login_required
+@permission_required(Permission.FOLLOW)
+def followed_by(username):
+    user = User.query.filter_by(username = username).first()
+    if user is None:
+        flash('Invalid User')
+        return redirect(url_for('.index'))
+    page = request.args.get('page', 1, type = int)
+    pagination = user.followed.paginate(page, per_page=10,
+            error_out=False)
+    followeds = [{'user': item.followed, 'timestamp': item.timestamp}
+            for item in pagination.items]
+    return render_template('followeds.html', user = user, title="Followed by",
+            endpoint='.followed_by', pagination = pagination,
+            followeds = followeds)
+
+@main.route('/admin/')
 @login_required
 @admin_required
 def for_admin_only():
